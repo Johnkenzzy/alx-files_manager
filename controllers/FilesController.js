@@ -154,6 +154,76 @@ class FilesController {
 
     return res.status(200).json(files);
   }
+
+  static async putPublish(req, res) {
+    const token = req.header('X-Token');
+    const userId = await redisClient.get(`auth_${token}`);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    let fileId;
+    try {
+      fileId = new ObjectId(req.params.id);
+    } catch (err) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    const file = await dbClient.db.collection('files').findOne({
+      _id: fileId,
+      userId: new ObjectId(userId),
+    });
+
+    if (!file) return res.status(404).json({ error: 'Not found' });
+
+    await dbClient.db.collection('files').updateOne(
+      { _id: fileId },
+      { $set: { isPublic: true } }
+    );
+
+    const updated = { ...file, isPublic: true };
+    return res.status(200).json({
+      id: updated._id,
+      userId: updated.userId,
+      name: updated.name,
+      type: updated.type,
+      isPublic: updated.isPublic,
+      parentId: updated.parentId,
+    });
+  }
+
+  static async putUnpublish(req, res) {
+    const token = req.header('X-Token');
+    const userId = await redisClient.get(`auth_${token}`);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    let fileId;
+    try {
+      fileId = new ObjectId(req.params.id);
+    } catch (err) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    const file = await dbClient.db.collection('files').findOne({
+      _id: fileId,
+      userId: new ObjectId(userId),
+    });
+
+    if (!file) return res.status(404).json({ error: 'Not found' });
+
+    await dbClient.db.collection('files').updateOne(
+      { _id: fileId },
+      { $set: { isPublic: false } }
+    );
+
+    const updated = { ...file, isPublic: false };
+    return res.status(200).json({
+      id: updated._id,
+      userId: updated.userId,
+      name: updated.name,
+      type: updated.type,
+      isPublic: updated.isPublic,
+      parentId: updated.parentId,
+    });
+  }
 }
 
 module.exports = FilesController;
